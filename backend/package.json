@@ -1,0 +1,28 @@
+{
+  "name": "luxledger",
+  "version": "1.0.0",
+  "description": "Supply management software powered by blockchain technology",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "test": "npx hardhat test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrtnOmwenga/LuxLedger.git"
+  },
+  "author": "Martin Omwenga",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/MrtnOmwenga/LuxLedger/issues"
+  },
+  "homepage": "https://github.com/MrtnOmwenga/LuxLedger#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.21.0",
+    "nodemon": "^3.1.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  }
+}
