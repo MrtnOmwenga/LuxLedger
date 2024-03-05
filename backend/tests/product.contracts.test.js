@@ -93,5 +93,33 @@ describe("LedgerContract", function () {
     expect(ownershipHistory[1].purchaseDate).to.equal("2022-03-05");
   });
 
-  // Add more tests for other functions as needed
+  it("should revert when creating a record with an empty manufacturing date", async function () {
+    await expect(
+      ledgerContract.connect(manufacturer).createRecord("", componentIds, metadataCID)
+    ).to.be.revertedWith("Manufacturing date cannot be empty");
+  });
+
+  it("should revert when updating the status of a non-existent record", async function () {
+    await expect(
+      ledgerContract.connect(manufacturer).updateRecordStatus(9999, 1) // Non-existent record ID
+    ).to.be.revertedWith("Record does not exist");
+  });
+
+  it("should revert when adding an inspector to a non-existent record", async function () {
+    await expect(
+      ledgerContract.connect(manufacturer).addInspector(9999, inspector.address, "2022-03-05") // Non-existent record ID
+    ).to.be.revertedWith("Record does not exist");
+  });
+
+  it("should revert when updating the inspection status of a non-existent record", async function () {
+    await expect(
+      ledgerContract.connect(inspector).updateInspection(9999, 1, "2022-03-06") // Non-existent record ID
+    ).to.be.revertedWith("Record does not exist");
+  });
+
+  it("should revert when transferring ownership of a non-existent record", async function () {
+    await expect(
+      ledgerContract.connect(manufacturer).transferRecordOwnership(9999, distributor.address, 0, "2022-03-05") // Non-existent record ID
+    ).to.be.revertedWith("Record does not exist");
+  });
 });

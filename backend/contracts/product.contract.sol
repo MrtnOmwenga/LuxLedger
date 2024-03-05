@@ -49,6 +49,7 @@ contract LedgerContract is ERC721, Ownable {
 
   // Modifier to restrict access to certain functions
   modifier onlyRecordOwner(uint256 _recordId) {
+    require(Ledger[_recordId].manufacturer != address(0), "Record does not exist");
     require(msg.sender == ownerOf(_recordId), "Only the owner can call this function");
     _;
   }
@@ -72,6 +73,9 @@ contract LedgerContract is ERC721, Ownable {
   ) public returns (uint256) {
     uint256 _recordId = nextRecordId;
     nextRecordId++;
+
+    // Chack passed data
+    require(bytes(_manufacturingDate).length > 0, "Manufacturing date cannot be empty");
 
     // Create a new record batch
     Record storage newRecord = Ledger[_recordId];
@@ -104,7 +108,6 @@ contract LedgerContract is ERC721, Ownable {
 
   // Function to update the status of a record batch
   function updateRecordStatus(uint256 _recordId, Status _status) public onlyRecordOwner(_recordId) {
-    require(Ledger[_recordId].manufacturer != address(0), "Batch does not exist");
     Ledger[_recordId].status = _status;
   }
 
@@ -126,6 +129,8 @@ contract LedgerContract is ERC721, Ownable {
 
   // Function to update the inspection status of a record
   function updateInspection(uint256 _recordId, InspectionStatus _status, string memory _inspectionDate) public {
+    require(Ledger[_recordId].manufacturer != address(0), "Record does not exist");
+
     Record storage record = Ledger[_recordId];
     uint256 _inspectionIndex = 0;
     for (uint256 i = 0; i < record.inspections.length; i++) {
