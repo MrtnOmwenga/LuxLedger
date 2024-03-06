@@ -5,57 +5,52 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Contract for managing the record supply chain
-contract LedgerContract is ERC721, Ownable {
+contract SupplyChainContract is ERC721, Ownable {
   // Variable to track the next available record ID
-  uint256 private nextRecordId;
+  uint256 private nextBatchId;
 
   // Enum to represent record status
-  enum Status { InProduction, UnderInspection, Verified, InTransit, Sold, Returned, Lost, Stolen, Disposed }
+  enum ProductStatus { InProduction, UnderInspection, InTransit, InDistribution, Sold, Recalled, Disposed }
 
   // Enum to represent inspection status
   enum InspectionStatus {Pending, Approved, Rejected}
 
   // Enum to represent owner types
-  enum OwnerType {Manufacturer, Distributor, Retailer, IndependEntentity}
+  enum OwnerType {Manufacturer, Distributor, Retailer, Consumer}
 
   // Struct to represent Quality Inspection.
   struct Inspection {
     address inspector;
     InspectionStatus status;
     string inspectionDate;
-  }
-
-  // Struct to represent ownership history
-  struct Ownership {
-    address owner;
-    OwnerType ownerType;
-    string purchaseDate;
+    string authenticationCID; // IPFS CID for authenticity certificates provided by inspector
   }
 
   // Struct to represent a record
-  struct Record {
-    uint256 recordId;
+  struct Product {
+    uint256 batchId;
     string manufacturingDate;
     string[] componentIds;
     address manufacturer;
     Inspection[] inspections;
-    Ownership[] ownershipHistory;
-    Status status;
+    address distributor;
+    address retailer;
+    ProductStatus status;
     string metadataCID; // IPFS CID for metadata
   }
 
   // Mapping to store record by recordId
-  mapping(uint256 => Record) public Ledger;
+  mapping(uint256 => Product) public ProductBatches;
 
   // Modifier to restrict access to certain functions
-  modifier onlyRecordOwner(uint256 _recordId) {
-    require(Ledger[_recordId].manufacturer != address(0), "Record does not exist");
-    require(msg.sender == ownerOf(_recordId), "Only the owner can call this function");
+  modifier onlyBatchOwner(uint256 _batchId) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Record does not exist");
+    require(msg.sender == ownerOf(_batchId), "Only the owner can call this function");
     _;
   }
 
   // Event emitted when a new record batch is created
-  event RecordCreated(uint256 indexed recordId, address indexed manufacturer);
+  event ProductCreated(uint256 indexed productId, address indexed manufacturer);
 
   // Event emitted when an inspection is updated
   event InspectionUpdated(uint256 indexed recordId, uint256 indexed inspectionIndex, address indexed inspector, InspectionStatus status);
@@ -66,103 +61,94 @@ contract LedgerContract is ERC721, Ownable {
   constructor(address initialOwner) Ownable(initialOwner) ERC721("RecordNFT", "RNFT") {}
 
   // Function to create a new record batch
-  function createRecord(
+  function createProductBatch(
     string memory _manufacturingDate,
     string[] memory _componentIds,
     string memory _metadataCID // IPFS CID for metadata
   ) public returns (uint256) {
-    uint256 _recordId = nextRecordId;
-    nextRecordId++;
+    uint256 _batchId = nextBatchId;
+    nextBatchId++;
 
     // Chack passed data
     require(bytes(_manufacturingDate).length > 0, "Manufacturing date cannot be empty");
 
     // Create a new record batch
-    Record storage newRecord = Ledger[_recordId];
-    newRecord.recordId = _recordId;
-    newRecord.manufacturingDate = _manufacturingDate;
-    newRecord.componentIds = _componentIds;
-    newRecord.manufacturer = msg.sender;
-    newRecord.status = Status.InProduction;
-    newRecord.metadataCID = _metadataCID;
-
-    // Declare a local variable for the Ownership struct
-    Ownership memory initialOwner = Ownership({
-      owner: msg.sender,
-      ownerType: OwnerType.Manufacturer,
-      purchaseDate: _manufacturingDate
-    });
-
-    // Initialize the ownership history array and add the initial entry
-    newRecord.ownershipHistory.push(initialOwner);
+    Product storage newBatch = ProductBatches[_batchId];
+    newBatch.batchId = _batchId;
+    newBatch.manufacturingDate = _manufacturingDate;
+    newBatch.componentIds = _componentIds;
+    newBatch.manufacturer = msg.sender;
+    newBatch.status = ProductStatus.InProduction;
+    newBatch.metadataCID = _metadataCID;
 
     // Mint a new NFT representing the record
-    _mint(msg.sender, _recordId);
+    _mint(msg.sender, _batchId);
 
-    _transfer(ownerOf(_recordId), msg.sender, _recordId);
+    _transfer(ownerOf(_batchId), msg.sender, _batchId);
 
     // Emit event
-    emit RecordCreated(_recordId, msg.sender);
-    return _recordId;
+    emit ProductCreated(_batchId, msg.sender);
+    return _batchId;
   }
 
   // Function to update the status of a record batch
-  function updateRecordStatus(uint256 _recordId, Status _status) public onlyRecordOwner(_recordId) {
-    Ledger[_recordId].status = _status;
+  function updateBatchStatus(uint256 _batchId, ProductStatus _status) public onlyBatchOwner(_batchId) {
+    ProductBatches[_batchId].status = _status;
   }
 
   // Function to set inspection status of a record to pending
-  function addInspector(uint256 _recordId, address _inspector, string memory _inspectionDate) public onlyRecordOwner(_recordId) {
-    Record storage record = Ledger[_recordId];
-    uint256 _inspectionIndex = record.inspections.length;
+  function addInspector(uint256 _batchId, address _inspector, string memory _inspectionDate, string memory _metadataCID) public onlyBatchOwner(_batchId) {
+    Product storage product = ProductBatches[_batchId];
+    uint256 _inspectionIndex = product.inspections.length;
     if (_inspector != address(0)) {
-      record.inspections.push(Inspection(_inspector, InspectionStatus.Pending, _inspectionDate));
+      product.inspections.push(Inspection(_inspector, InspectionStatus.Pending, _inspectionDate, _metadataCID));
+      emit InspectionUpdated(_batchId, _inspectionIndex, _inspector, InspectionStatus.Pending);
     }
-    emit InspectionUpdated(_recordId, _inspectionIndex, _inspector, InspectionStatus.Pending);
   }
 
   // Function to get the current inspection status of a record
-  function getInspectionStatus(uint256 _recordId) public view returns (uint256, Inspection[] memory) {
-    Record storage record = Ledger[_recordId];
-    return (record.inspections.length, record.inspections);
+  function getInspectionStatus(uint256 _batchId) public view returns (uint256, Inspection[] memory) {
+    Product storage product = ProductBatches[_batchId];
+    return (product.inspections.length, product.inspections);
   }
 
   // Function to update the inspection status of a record
-  function updateInspection(uint256 _recordId, InspectionStatus _status, string memory _inspectionDate) public {
-    require(Ledger[_recordId].manufacturer != address(0), "Record does not exist");
+  function updateInspection(uint256 _batchId, InspectionStatus _status, string memory _inspectionDate) public {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Record does not exist");
 
-    Record storage record = Ledger[_recordId];
+    Product storage product = ProductBatches[_batchId];
     uint256 _inspectionIndex = 0;
-    for (uint256 i = 0; i < record.inspections.length; i++) {
-      if (record.inspections[i].inspector == msg.sender) {
+    for (uint256 i = 0; i < product.inspections.length; i++) {
+      if (product.inspections[i].inspector == msg.sender) {
         _inspectionIndex = i;
         break;
       }
     }
-    require(_inspectionIndex < record.inspections.length, "Inspection not found");
-    require(record.inspections[_inspectionIndex].inspector == msg.sender, "Only the assigned inspector can update inspection status");
-    record.inspections[_inspectionIndex].status = _status;
-    record.inspections[_inspectionIndex].inspectionDate = _inspectionDate;
-    emit InspectionUpdated(_recordId, _inspectionIndex, msg.sender, _status);
-  }
-
-  // Function to get ownership history
-  function getOwnershipHistory(uint256 _recordId) public view returns (uint256, Ownership[] memory) {
-    Record storage record = Ledger[_recordId];
-    return (record.ownershipHistory.length, record.ownershipHistory);
+    require(_inspectionIndex < product.inspections.length, "Inspection not found");
+    require(product.inspections[_inspectionIndex].inspector == msg.sender, "Only the assigned inspector can update inspection status");
+    product.inspections[_inspectionIndex].status = _status;
+    product.inspections[_inspectionIndex].inspectionDate = _inspectionDate;
+    emit InspectionUpdated(_batchId, _inspectionIndex, msg.sender, _status);
   }
 
   // Function to transfer ownership of a record NFT
-  function transferRecordOwnership(uint256 _recordId, address _to, OwnerType _ownerType, string memory _purchaseDate) public onlyRecordOwner(_recordId) {
-    Record storage record = Ledger[_recordId];
-    address prevOwner = record.ownershipHistory[record.ownershipHistory.length - 1].owner; // Get the previous owner
-
-    // Add new ownership entry to history
-    record.ownershipHistory.push(Ownership(_to, _ownerType, _purchaseDate));
+  function transferBatchOwnership(uint256 _batchId, address _to, OwnerType _ownerType) public onlyBatchOwner(_batchId) {
+    Product storage product = ProductBatches[_batchId];
 
     // Transfer ownership
-    _transfer(msg.sender, _to, _recordId);
+    _transfer(msg.sender, _to, _batchId);
 
-    emit OwnershipChanged(_recordId, prevOwner, _to);
+    // Update product status and addresses based on owner type
+    if (_ownerType == OwnerType.Distributor) {
+      product.distributor = _to;
+      product.status = ProductStatus.InDistribution;
+    } else if (_ownerType == OwnerType.Retailer) {
+      product.retailer = _to;
+      product.status = ProductStatus.Sold;
+    } else if (_ownerType == OwnerType.Consumer) {
+      product.status = ProductStatus.Sold;
+    }
+
+    emit OwnershipChanged(_batchId, ownerOf(_batchId), _to);
   }
 }
