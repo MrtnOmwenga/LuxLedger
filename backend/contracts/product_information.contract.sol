@@ -3,9 +3,11 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./recall_management.contract.sol";
+import "./quality_control.contract.sol";
 
 // Contract for managing the record supply chain
-contract SupplyChainContract is ERC721, Ownable {
+contract SupplyChainContract is ERC721, Ownable, RecallManagement, QualityControl {
   // Variable to track the next available record ID
   uint256 private nextBatchId;
 
@@ -57,6 +59,9 @@ contract SupplyChainContract is ERC721, Ownable {
 
   // Event emitted when an ownership is changed
   event OwnershipChanged(uint256 indexed recordId, address indexed prev_owner, address curr_owner);
+
+  // Event emitted when a product batch is recalled
+  event ProductRecalled(uint256 indexed batchId, string reason, address initiator);
 
   constructor(address initialOwner) Ownable(initialOwner) ERC721("RecordNFT", "RNFT") {}
 
@@ -150,5 +155,26 @@ contract SupplyChainContract is ERC721, Ownable {
     }
 
     emit OwnershipChanged(_batchId, ownerOf(_batchId), _to);
+  }
+
+  // Function to allow manufaturers to recall products
+  function recallProductBatch(uint256 _batchId, string memory _reasonCID) public {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Record does not exist");
+    ProductBatches[_batchId].status = ProductStatus.Recalled;
+    RecallManagement.recallProduct(_batchId, _reasonCID);
+    
+    emit ProductRecalled(_batchId, _reasonCID, msg.sender);
+  }
+
+  // Function to allow product owners to send back recalled products
+  function returnRecalledProduct(uint256 _batchId) public {
+    require(ProductBatches[_batchId].status == ProductStatus.Recalled, "Product is not recalled");
+    require(ownerOf(_batchId) == msg.sender, "You are not the owner of this product");
+
+    // Update product status
+    ProductBatches[_batchId].status = ProductStatus.Disposed;
+
+    // Transfer ownership back to the manufacturer
+    _transfer(msg.sender, ProductBatches[_batchId].manufacturer, _batchId);
   }
 }

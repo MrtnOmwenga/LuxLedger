@@ -9,11 +9,12 @@ describe("supplyChainContract", function () {
   let distributor;
   let retailer;
   let consumer;
-  let recordId;
+  let batchId;
   let manufacturingDate = "2022-03-01";
   let componentIds = ["component1", "component2"];
   let metadataCID = "ipfs://Qm..."; // Example IPFS CID
   let authenticationCID = "ipfs://Qm...";
+  let defectDescriptionCID = "ipfs://Qm...";
 
   beforeEach(async function () {
     [owner, manufacturer, inspector, distributor, retailer, consumer] = await ethers.getSigners();
@@ -23,37 +24,37 @@ describe("supplyChainContract", function () {
   });
 
   it("should create a new record", async function () {
-    // Call the createProductBatch function and capture the returned recordId
+    // Call the createProductBatch function and capture the returned batchId
     const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const recordId = transaction.value;
+    const batchId = transaction.value;
 
-    // Retrieve the record details using the recordId
-    const record = await supplyChainContract.ProductBatches(recordId);
+    // Retrieve the record details using the batchId
+    const record = await supplyChainContract.ProductBatches(batchId);
 
     // Assert the record details
     expect(record.manufacturer).to.equal(manufacturer.address);
     expect(record.status).to.equal(0); // Status.InProduction
-    expect(await supplyChainContract.ownerOf(recordId)).to.equal(manufacturer.address);
+    expect(await supplyChainContract.ownerOf(batchId)).to.equal(manufacturer.address);
   });
 
   it("should update the status of a record", async function () {
     const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const recordId = transaction.value;
+    const batchId = transaction.value;
 
-    await supplyChainContract.connect(manufacturer).updateBatchStatus(recordId, 1); // Status.InInspection
-    const record = await supplyChainContract.ProductBatches(recordId);
+    await supplyChainContract.connect(manufacturer).updateBatchStatus(batchId, 1); // Status.InInspection
+    const record = await supplyChainContract.ProductBatches(batchId);
     expect(record.status).to.equal(1); // Status.InInspection
   });
 
   it("should add an inspector to a record", async function () {
     const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const recordId = transaction.value;
+    const batchId = transaction.value;
 
-    await supplyChainContract.connect(manufacturer).addInspector(recordId, inspector.address, "2022-03-05", authenticationCID);
-    const record = await supplyChainContract.ProductBatches(recordId);
+    await supplyChainContract.connect(manufacturer).addInspector(batchId, inspector.address, "2022-03-05", authenticationCID);
+    const record = await supplyChainContract.ProductBatches(batchId);
     
     // Get the number of inspections
-    const [inspectionCount, inspections] = await supplyChainContract.getInspectionStatus(recordId);
+    const [inspectionCount, inspections] = await supplyChainContract.getInspectionStatus(batchId);
     
     // Check if there is one inspection
     expect(inspectionCount).to.equal(1);
@@ -65,14 +66,14 @@ describe("supplyChainContract", function () {
 
   it("should update the inspection status of a record", async function () {
     const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const recordId = transaction.value;
+    const batchId = transaction.value;
 
-    await supplyChainContract.connect(manufacturer).addInspector(recordId, inspector.address, "2022-03-05", authenticationCID);
-    await supplyChainContract.connect(inspector).updateInspection(recordId, 1, "2022-03-06"); // Specify distributor's address as sender
-    const record = await supplyChainContract.ProductBatches(recordId);
+    await supplyChainContract.connect(manufacturer).addInspector(batchId, inspector.address, "2022-03-05", authenticationCID);
+    await supplyChainContract.connect(inspector).updateInspection(batchId, 1, "2022-03-06"); // Specify distributor's address as sender
+    const record = await supplyChainContract.ProductBatches(batchId);
 
     // Get the number of inspections
-    const [inspectionCount, inspections] = await supplyChainContract.getInspectionStatus(recordId);
+    const [inspectionCount, inspections] = await supplyChainContract.getInspectionStatus(batchId);
 
     // Check the details of the first inspection
     expect(inspections[0].status).to.equal(1); // InspectionStatus.Approved
@@ -81,12 +82,12 @@ describe("supplyChainContract", function () {
 
   it("should transfer ownership of a record", async function () {
     const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const recordId = transaction.value;
+    const batchId = transaction.value;
 
-    await supplyChainContract.connect(manufacturer).transferBatchOwnership(recordId, distributor.address, 0); // OwnerType.Distributor
-    const record = await supplyChainContract.ProductBatches(recordId);
+    await supplyChainContract.connect(manufacturer).transferBatchOwnership(batchId, distributor.address, 1); // OwnerType.Distributor
+    const record = await supplyChainContract.ProductBatches(batchId);
 
-    expect(await supplyChainContract.ownerOf(recordId)).to.equal(distributor.address);
+    expect(await supplyChainContract.ownerOf(batchId)).to.equal(distributor.address);
   });
 
   it("should revert when creating a record with an empty manufacturing date", async function () {
@@ -117,5 +118,45 @@ describe("supplyChainContract", function () {
     await expect(
       supplyChainContract.connect(manufacturer).transferBatchOwnership(9999, distributor.address, 0) // Non-existent record ID
     ).to.be.revertedWith("Record does not exist");
+  });
+
+  it("should recall a product batch", async function () {
+    const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const batchId = transaction.value;
+
+    // Recall the product batch
+    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, "Defective product");
+
+    const product = await supplyChainContract.ProductBatches(batchId);
+    expect(product.status).to.equal(5); // ProductStatus.Recalled
+  });
+
+  it("should allow returning recalled product batches", async function () {
+    const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const batchId = transaction.value;
+
+    // Transfer ownership
+    await supplyChainContract.connect(manufacturer).transferBatchOwnership(batchId, distributor.address, 1); // OwnerType.Distributor
+
+    // Recall the product batch
+    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, "Defective product");
+
+    // Return the recalled product batch
+    await supplyChainContract.connect(distributor).returnRecalledProduct(batchId);
+
+    const product = await supplyChainContract.ProductBatches(batchId);
+    expect(product.status).to.equal(6); // ProductStatus.Disposed
+  });
+
+  it("should report a defect", async function () {
+    const transaction = await supplyChainContract.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const batchId = transaction.value;
+
+    await supplyChainContract.connect(inspector).reportDefect(batchId, defectDescriptionCID);
+    const defect = await supplyChainContract.defects(0);
+    
+    expect(defect.productId).to.equal(batchId);
+    expect(defect.inspector).to.equal(inspector.address);
+    expect(defect.description).to.equal(defectDescriptionCID);
   });
 });
