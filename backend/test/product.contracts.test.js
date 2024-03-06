@@ -125,10 +125,13 @@ describe("supplyChainContract", function () {
     const batchId = transaction.value;
 
     // Recall the product batch
-    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, "Defective product");
+    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, defectDescriptionCID);
 
     const product = await supplyChainContract.ProductBatches(batchId);
     expect(product.status).to.equal(5); // ProductStatus.Recalled
+
+    const recalls = await supplyChainContract.recalls(batchId);
+    expect(recalls.reason).to.equal(defectDescriptionCID)
   });
 
   it("should allow returning recalled product batches", async function () {
@@ -139,7 +142,7 @@ describe("supplyChainContract", function () {
     await supplyChainContract.connect(manufacturer).transferBatchOwnership(batchId, distributor.address, 1); // OwnerType.Distributor
 
     // Recall the product batch
-    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, "Defective product");
+    await supplyChainContract.connect(manufacturer).recallProductBatch(batchId, defectDescriptionCID);
 
     // Return the recalled product batch
     await supplyChainContract.connect(distributor).returnRecalledProduct(batchId);

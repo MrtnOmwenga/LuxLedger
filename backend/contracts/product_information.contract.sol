@@ -161,7 +161,7 @@ contract SupplyChainContract is ERC721, Ownable, RecallManagement, QualityContro
   function recallProductBatch(uint256 _batchId, string memory _reasonCID) public {
     require(ProductBatches[_batchId].manufacturer != address(0), "Record does not exist");
     ProductBatches[_batchId].status = ProductStatus.Recalled;
-    RecallManagement.recallProduct(_batchId, _reasonCID);
+    recallProduct(_batchId, _reasonCID);
     
     emit ProductRecalled(_batchId, _reasonCID, msg.sender);
   }
