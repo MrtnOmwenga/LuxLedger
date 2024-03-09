@@ -25,7 +25,7 @@ describe("productInformation", function () {
 
   it("should create a new record", async function () {
     // Call the createProductBatch function and capture the returned batchId
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     // Retrieve the record details using the batchId
@@ -38,7 +38,7 @@ describe("productInformation", function () {
   });
 
   it("should update the status of a record", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     await productInformation.connect(manufacturer).updateBatchStatus(batchId, 1); // Status.InInspection
@@ -47,7 +47,7 @@ describe("productInformation", function () {
   });
 
   it("should add an inspector to a record", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     await productInformation.connect(manufacturer).addInspector(batchId, inspector.address, "2022-03-05", authenticationCID);
@@ -65,7 +65,7 @@ describe("productInformation", function () {
   });
 
   it("should update the inspection status of a record", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     await productInformation.connect(manufacturer).addInspector(batchId, inspector.address, "2022-03-05", authenticationCID);
@@ -80,19 +80,9 @@ describe("productInformation", function () {
     expect(inspections[0].inspectionDate).to.equal("2022-03-06");
   });
 
-  it("should transfer ownership of a record", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
-    const batchId = transaction.value;
-
-    await productInformation.connect(manufacturer).transferBatchOwnership(batchId, distributor.address, 0); // OwnerType.Distributor
-    const product = await productInformation.ProductBatches(batchId);
-
-    expect(await productInformation.ownerOf(batchId)).to.equal(distributor.address);
-  });
-
   it("should revert when creating a record with an empty manufacturing date", async function () {
     await expect(
-      productInformation.connect(manufacturer).createProductBatch("", componentIds, metadataCID)
+      productInformation.connect(manufacturer).createProductBatch(100, "", componentIds, metadataCID)
     ).to.be.revertedWith("Manufacturing date cannot be empty");
   });
 
@@ -116,12 +106,12 @@ describe("productInformation", function () {
 
   it("should revert when transferring ownership of a non-existent record", async function () {
     await expect(
-      productInformation.connect(manufacturer).transferBatchOwnership(9999, distributor.address, 0) // Non-existent record ID
+      productInformation.connect(manufacturer).transferBatchOwnership(9999, distributor.address) // Non-existent record ID
     ).to.be.revertedWith("Product does not exist");
   });
 
   it("should recall a product batch", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     // Recall the product batch
@@ -135,11 +125,11 @@ describe("productInformation", function () {
   });
 
   it("should allow returning recalled product batches", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     // Transfer ownership
-    await productInformation.connect(manufacturer).transferBatchOwnership(batchId, distributor.address, 0); // OwnerType.Distributor
+    await productInformation.connect(manufacturer).transferBatchOwnership(batchId, distributor.address); // OwnerType.Distributor
 
     // Recall the product batch
     await productInformation.connect(manufacturer).recallProductBatch(batchId, defectDescriptionCID);
@@ -152,7 +142,7 @@ describe("productInformation", function () {
   });
 
   it("should report a defect", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(manufacturingDate, componentIds, metadataCID);
+    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
 
     await productInformation.connect(inspector).reportDefect(batchId, defectDescriptionCID);

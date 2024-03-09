@@ -9,6 +9,7 @@ const tokens = (n) => {
 describe("Escrow", (accounts) => {
   let Escrow;
   let ProductInformation;
+  let LotInformation;
   let owner
   let seller;
   let buyer;
@@ -16,80 +17,147 @@ describe("Escrow", (accounts) => {
   beforeEach(async () => {
     [owner, seller, buyer] = await ethers.getSigners();
 
+    const lotInformationInstance = await ethers.getContractFactory("LotInformation");
+    LotInformation = await lotInformationInstance.deploy();
+
     const productInformationInstance = await ethers.getContractFactory("ProductInformation");
-    ProductInformation = await productInformationInstance.deploy(owner);
+    ProductInformation = await productInformationInstance.deploy(LotInformation.target);
 
     // Deploy Escrow contract with the address of the ProductInformation contract
     const EscrowFactory = await ethers.getContractFactory("Escrow");
-    Escrow = await EscrowFactory.deploy(ProductInformation.target);
+    Escrow = await EscrowFactory.deploy(ProductInformation.target, LotInformation.target);
   });
 
-  it("should allow manufacturer create a listing", async () => {
-    const quantity = 5;
-    const pricePerUnit = web3.utils.toWei("1", "ether");
+  it("should allow manufacturer create a lot listing", async () => {
+    const pricePerUnit = 1;
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
-    console.log("Before: ", await Escrow.connect(seller).getBatchOwner(product.value));
-    console.log("Contract: ", seller.address);
-    const tx = await Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit);
-    console.log("After: ", await Escrow.connect(seller).getBatchOwner(product.value));
-    console.log("Contract: ", Escrow.target);
+    const product = await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const lot = await ProductInformation.connect(seller).createLot(product.value, 50);
+
+    // Check that both the batch and lot are owned by the seller
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+    expect(await LotInformation.ownerOf(lot.value)).to.equal(seller.address);
+
+    // Approve transfer
+    const transaction = await LotInformation.connect(seller).approve(Escrow.target, lot.value);
+    await transaction.wait();
+
+    const tx = await Escrow.connect(seller).createListing(product.value, lot.value, pricePerUnit, false);
+
+    // Check that product batch is owned by seller but lot is transferred to Escrow
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+    expect(await LotInformation.ownerOf(lot.value)).to.equal(Escrow.target);
 
     const listing = await Escrow.listings(tx.value);
     
     expect(listing.seller).to.equal(seller);
     expect(listing.batchId).to.equal(product.value);
-    expect(listing.quantity).to.equal(quantity);
     expect(listing.pricePerUnit).to.equal(pricePerUnit);
   });
 
-  it("should not allow listing creation with zero quantity", async () => {
-    const quantity = 0;
-    const pricePerUnit = web3.utils.toWei("1", "ether");
+  it("should allow manufacturer create a batch listing", async () => {
+    const pricePerUnit = 1;
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const product = await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
 
-    await expect(
-      Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit)
-    ).to.be.revertedWith("Quantity must be greater than zero");
+    // Check that both the batch and lot are owned by the seller
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+
+    // Approve transfer
+    const transaction = await ProductInformation.connect(seller).approve(Escrow.target, product.value);
+    await transaction.wait();
+
+    const tx = await Escrow.connect(seller).createListing(product.value, 0, pricePerUnit, true);
+
+    // Check that product batch is transferred to Escrow
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(Escrow.target);
+
+    const listing = await Escrow.listings(tx.value);
+    
+    expect(listing.seller).to.equal(seller);
+    expect(listing.batchId).to.equal(product.value);
+    expect(listing.pricePerUnit).to.equal(pricePerUnit);
   });
 
   it("should not allow listing creation with zero price per unit", async () => {
-    const quantity = 5;
     const pricePerUnit = 0;
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const product = await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const lot = await ProductInformation.connect(seller).createLot(product.value, 50);
 
+    // Approve transaction
+    const transaction = await LotInformation.connect(seller).approve(Escrow.target, lot.value);
+    await transaction.wait();
     await expect(
-      Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit)
+      Escrow.connect(seller).createListing(product.value, lot.value, pricePerUnit, false)
     ).to.be.revertedWith("Price per unit must be greater than zero");
   });
 
-  it("should allow purchase of a listing", async () => {
-    const quantity = 5;
+  it("should allow purchase of a lot listing", async () => {
+    const batchSize = 100;
+    const lotSize = 50;
     const pricePerUnit = 1;
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
-    let tx = await Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit);
+    const product = await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const lot = await ProductInformation.connect(seller).createLot(product.value, lotSize);
 
-    console.log("productBatchOwner called directly: ", await ProductInformation.connect(seller).productBatchOwner(product.value));
-    console.log("getBatchOwner called from Escrow", await Escrow.connect(seller).getBatchOwner(product.value));
+    // Check that both the batch and lot are owned by the seller
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+    expect(await LotInformation.ownerOf(lot.value)).to.equal(seller.address);
 
-    const result = await Escrow.getBalance();
+    // Approve transaction
+    const transaction = await LotInformation.connect(seller).approve(Escrow.target, lot.value);
+    await transaction.wait();
 
-    tx = await Escrow.connect(buyer).purchase(tx.value, { value: tokens(pricePerUnit * quantity) });
+    let createListingTx = await Escrow.connect(seller).createListing(product.value, lot.value, pricePerUnit, false);
 
-    const listing = await Escrow.listings(tx.value);
+    // Check that both the batch and lot are owned by the seller
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+    expect(await LotInformation.ownerOf(lot.value)).to.equal(Escrow.target);
 
-    const resultAfter = await Escrow.getBalance();
+    let purchaseListingTx = await Escrow.connect(buyer).purchase(createListingTx.value, { value: tokens(pricePerUnit * lotSize) });
+
+    // Check that both the batch and lot are owned by the seller
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+    expect(await LotInformation.ownerOf(lot.value)).to.equal(buyer.address);
+
+    const listing = await Escrow.listings(createListingTx.value);
+    expect(listing.isFulfilled).to.equal(true);
+  });
+
+  it("should allow purchase of a batch listing", async () => {
+    const batchSize = 100;
+    const pricePerUnit = 1;
+
+    const product = await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(seller.address);
+  
+    // Approve transaction
+    const transaction = await ProductInformation.connect(seller).approve(Escrow.target, product.value);
+    await transaction.wait();
+
+    let createListingTx = await Escrow.connect(seller).createListing(product.value, 0, pricePerUnit, true);
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(Escrow.target);
+
+    let purchaseListingTx = await Escrow.connect(buyer).purchase(createListingTx.value, { value: tokens(pricePerUnit * batchSize) });
+    expect(await ProductInformation.ownerOf(product.value)).to.equal(buyer.address);
+
+    const listing = await Escrow.listings(createListingTx.value);
+    expect(listing.isFulfilled).to.equal(true);
   });
 
   it("should not allow purchase of a fulfilled listing", async () => {
     const quantity = 5;
     const pricePerUnit = 1;
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
-    await Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit);
+    const product = await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const lot = await ProductInformation.connect(seller).createLot(product.value, 50);
+
+    // Approve transaction
+    const transaction = await LotInformation.connect(seller).approve(Escrow.target, lot.value);
+    await transaction.wait();
+  
+    await Escrow.connect(seller).createListing(product.value, lot.value, pricePerUnit, false);
 
     await Escrow.connect(buyer).purchase(0, { value: tokens(pricePerUnit * quantity) });
 
@@ -100,11 +168,17 @@ describe("Escrow", (accounts) => {
 
   it("should not allow purchase with insufficient payment", async () => {
     const quantity = 5;
-    const pricePerUnit = web3.utils.toWei("1", "ether");
+    const pricePerUnit = web3.utils.toWei("5", "ether");
     const insufficientPayment = web3.utils.toWei("2", "ether");
 
-    const product = await ProductInformation.connect(seller).createProductBatch("2022-03-01", ["component1", "component2"], "ipfs://Qm...");
-    await Escrow.connect(seller).createListing(product.value, quantity, pricePerUnit);
+    const product = await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    const lot = await ProductInformation.connect(seller).createLot(product.value, 50);
+
+    // Approve transaction
+    const transaction = await LotInformation.connect(seller).approve(Escrow.target, lot.value);
+    await transaction.wait();
+
+    await Escrow.connect(seller).createListing(product.value, lot.value, pricePerUnit, false);
 
     await expect(
       Escrow.connect(buyer).purchase(0, { value: insufficientPayment })

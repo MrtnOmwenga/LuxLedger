@@ -5,21 +5,25 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./recall_management.contract.sol";
 import "./quality_control.contract.sol";
+import "./lot_information.contract.sol";
 import "hardhat/console.sol";
+
+interface ILotInformation {
+  function registerBatch(uint256 _batchId, uint256 _batchSize) external;
+  function createLot(uint256 _batchId, uint256 _lotSize, address _owner) external returns(uint256);
+}
 
 // Contract for managing the Product supply chain
 contract ProductInformation is ERC721, RecallManagement, QualityControl {
   // Variable to track the next available Product ID
   uint256 private nextBatchId;
+  address lotInformationContract;
 
   // Enum to represent Product status
   enum ProductStatus { InProduction, UnderInspection, InTransit, InDistribution, Sold, Recalled, Disposed }
 
   // Enum to represent inspection status
   enum InspectionStatus {Pending, Approved, Rejected}
-
-  // Enum to represent owner types
-  enum OwnerType {Distributor, Retailer, Escrow}
 
   // Struct to represent Quality Inspection.
   struct Inspection {
@@ -31,12 +35,12 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
 
   // Struct to represent a Product
   struct Product {
+    uint256 batchSize;
     string manufacturingDate;
     string[] componentIds;
+    uint256[] lots;
     address manufacturer;
     Inspection[] inspections;
-    address distributor;
-    address retailer;
     ProductStatus status;
     string metadataCID; // IPFS CID for metadata
   }
@@ -58,15 +62,19 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   event InspectionUpdated(uint256 indexed ProductId, uint256 indexed inspectionIndex, address indexed inspector, InspectionStatus status);
 
   // Event emitted when an ownership is changed
-  event OwnershipChanged(uint256 indexed ProductId, address indexed prev_owner, address curr_owner);
+  event BatchOwnershipChanged(uint256 indexed ProductId, address indexed prev_owner, address curr_owner);
 
   // Event emitted when a product batch is recalled
   event ProductRecalled(uint256 indexed batchId, string reason, address initiator);
 
-  constructor() ERC721("ProductNFT", "RNFT") {}
+  // constructor() ERC721("ProductInformationContract", "PIC") {}
+  constructor(address _lotInformationContract) ERC721("ProductInformationContract", "PIC") {
+    lotInformationContract = _lotInformationContract; // Initialize ProductInformation contract
+  }
 
   // Function to create a new Product batch
   function createProductBatch(
+    uint256 _batchSize,
     string memory _manufacturingDate,
     string[] memory _componentIds,
     string memory _metadataCID
@@ -79,31 +87,54 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
 
     // Create a new Product batch
     Product storage newBatch = ProductBatches[_batchId];
+    newBatch.batchSize = _batchSize;
     newBatch.manufacturingDate = _manufacturingDate;
     newBatch.componentIds = _componentIds;
     newBatch.manufacturer = msg.sender;
     newBatch.status = ProductStatus.InProduction;
     newBatch.metadataCID = _metadataCID;
 
-    // Mint a new NFT representing the Product
-    _mint(msg.sender, _batchId);
+    ILotInformation(lotInformationContract).registerBatch(_batchId, _batchSize);
 
-    _transfer(ownerOf(_batchId), msg.sender, _batchId);
+    // Mint a new NFT representing the Product
+    _safeMint(msg.sender, _batchId);
 
     // Emit event
     emit ProductCreated(_batchId, msg.sender);
     return _batchId;
   }
 
+  // Function get batch size
+  function getBatchSize(uint256 _batchId) external returns(uint256) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
+    return (ProductBatches[_batchId].batchSize);
+  }
+
+  // Function to create a lot and establish ownership.
+  function createLot(uint256 _batchId, uint256 _lotSize) external onlyBatchOwner(_batchId) returns(uint256) {
+    require(_lotSize > 0, "Lot size cannot be less than 1");
+
+    uint256 _lotId = ILotInformation(lotInformationContract).createLot(_batchId, _lotSize, msg.sender);
+  
+    emit ProductCreated(_batchId, msg.sender);
+    return _lotId;
+  }
+
   // Function to update the status of a Product batch
   function updateBatchStatus(uint256 _batchId, ProductStatus _status) public onlyBatchOwner(_batchId) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
     ProductBatches[_batchId].status = _status;
   }
 
   // Function to set inspection status of a Product to pending
   function addInspector(uint256 _batchId, address _inspector, string memory _inspectionDate, string memory _metadataCID) public onlyBatchOwner(_batchId) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
     Product storage product = ProductBatches[_batchId];
     uint256 _inspectionIndex = product.inspections.length;
+
     if (_inspector != address(0)) {
       product.inspections.push(Inspection(_inspector, InspectionStatus.Pending, _inspectionDate, _metadataCID));
       emit InspectionUpdated(_batchId, _inspectionIndex, _inspector, InspectionStatus.Pending);
@@ -112,6 +143,8 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
 
   // Function to get the current inspection status of a Product
   function getInspectionStatus(uint256 _batchId) public view returns (uint256, Inspection[] memory) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
     Product storage product = ProductBatches[_batchId];
     return (product.inspections.length, product.inspections);
   }
@@ -135,34 +168,10 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
     emit InspectionUpdated(_batchId, _inspectionIndex, msg.sender, _status);
   }
 
-  // Function to transfer ownership of a Product NFT
-  function transferBatchOwnership(uint256 _batchId, address _to, OwnerType _ownerType) public onlyBatchOwner(_batchId) {
-    Product storage product = ProductBatches[_batchId];
-
-    // Transfer ownership
-    _transfer(msg.sender, _to, _batchId);
-
-    // Update product status and addresses based on owner type
-    if (_ownerType == OwnerType.Distributor) {
-      product.distributor = _to;
-      product.status = ProductStatus.InDistribution;
-    } else if (_ownerType == OwnerType.Retailer) {
-      product.retailer = _to;
-      product.status = ProductStatus.Sold;
-    }
-
-    emit OwnershipChanged(_batchId, ownerOf(_batchId), _to);
-  }
-
-  // Function to get owner of product batch
-  function productBatchOwner(uint256 _batchId) external view returns(address) {
-    // require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
-    return ownerOf(_batchId);
-  }
-
   // Function to allow manufaturers to recall products
   function recallProductBatch(uint256 _batchId, string memory _reasonCID) public {
     require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
     ProductBatches[_batchId].status = ProductStatus.Recalled;
     recallProduct(_batchId, _reasonCID);
     
