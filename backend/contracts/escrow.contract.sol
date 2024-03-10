@@ -100,7 +100,7 @@ contract Escrow {
   }
 
   function purchaseLot(uint256 _listingId) public payable {
-    require(LotListings[_listingId].seller != address(0), "Product does not exist");
+    require(LotListings[_listingId].seller != address(0), "Lot does not exist");
   
     Lot storage listing = LotListings[_listingId];
     require(!listing.isFulfilled, "Listing is already fulfilled");
@@ -117,7 +117,7 @@ contract Escrow {
   }
 
   function purchaseBatch(uint256 _listingId) public payable {
-    require(BatchListings[_listingId].seller != address(0), "Product does not exist");
+    require(BatchListings[_listingId].seller != address(0), "Batch does not exist");
 
     Batch storage listing = BatchListings[_listingId];
     require(!listing.isFulfilled, "Listing is already fulfilled");
@@ -135,7 +135,7 @@ contract Escrow {
 
   // Function to allow product owners to send back recalled products
   function returnLot(uint256 _listingId) public {
-    require(LotListings[_listingId].seller != address(0), "Product does not exist");
+    require(LotListings[_listingId].seller != address(0), "Lot does not exist");
     require(Returns[_listingId].buyer == address(0), "Return request already exists");
 
     Lot storage listing = LotListings[_listingId];
@@ -145,14 +145,14 @@ contract Escrow {
     // Transfer ownership back to the escrow
     ILotInformation(lotInformationContract).transferFrom(msg.sender, address(this), listing.lotId);
 
-    Returns[_listingId].status = ReturnStatus.Pending;
+    Returns[_listingId] = ReturnRequests(_listingId, msg.sender, ReturnStatus.Pending);
 
     emit ProductReturned(_listingId, msg.sender, LotListings[_listingId].seller);
   }
 
   // Function to allow product owners to send back recalled products
   function returnBatch(uint256 _listingId) public {
-    require(BatchListings[_listingId].seller != address(0), "Product does not exist");
+    require(BatchListings[_listingId].seller != address(0), "Batch does not exist");
     require(Returns[_listingId].buyer == address(0), "Return request already exists");
 
     Batch storage listing = BatchListings[_listingId];
@@ -162,14 +162,14 @@ contract Escrow {
     // Transfer ownership back to the escrow
     IProductInformation(productInformationContract).transferFrom(msg.sender, address(this), listing.batchId);
 
-    Returns[_listingId].status = ReturnStatus.Pending;
+    Returns[_listingId] = ReturnRequests(_listingId, msg.sender, ReturnStatus.Pending);
 
     emit ProductReturned(_listingId, msg.sender, BatchListings[_listingId].seller);
   }
 
   function approveLotReturn(uint256 _listingId) public payable {
     require(LotListings[_listingId].seller != address(0), "Product does not exist");
-    require(Returns[_listingId].buyer == address(0), "Return request already exists");
+    require(Returns[_listingId].buyer != address(0), "Return request already exists");
     require(msg.sender == LotListings[_listingId].seller, "Only seller can handle requests");
 
     Lot storage listing = LotListings[_listingId];
@@ -181,9 +181,9 @@ contract Escrow {
     emit ReturnApproved(_listingId, Returns[_listingId].buyer, msg.sender);
   }
 
-  function approveBatchtReturn(uint256 _listingId) public payable {
+  function approveBatchReturn(uint256 _listingId) public payable {
     require(BatchListings[_listingId].seller != address(0), "Product does not exist");
-    require(Returns[_listingId].buyer == address(0), "Return request already exists");
+    require(Returns[_listingId].buyer != address(0), "Return request already exists");
     require(msg.sender == BatchListings[_listingId].seller, "Only seller can handle requests");
 
     Batch storage listing = BatchListings[_listingId];
@@ -197,7 +197,7 @@ contract Escrow {
 
   function denyLotReturn(uint256 _listingId) public payable {
     require(LotListings[_listingId].seller != address(0), "Product does not exist");
-    require(Returns[_listingId].buyer == address(0), "Return request already exists");
+    require(Returns[_listingId].buyer != address(0), "Return request doesn't exist");
     require(msg.sender == LotListings[_listingId].seller, "Only seller can handle requests");
 
     Lot storage listing = LotListings[_listingId];
@@ -210,7 +210,7 @@ contract Escrow {
 
   function denyBatchReturn(uint256 _listingId) public payable {
     require(BatchListings[_listingId].seller != address(0), "Product does not exist");
-    require(Returns[_listingId].buyer == address(0), "Return request already exists");
+    require(Returns[_listingId].buyer != address(0), "Return request doesn't exists");
     require(msg.sender == BatchListings[_listingId].seller, "Only seller can handle requests");
 
     Batch storage listing = BatchListings[_listingId];
