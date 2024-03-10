@@ -43,7 +43,7 @@ contract LotInformation is ERC721 {
     uint256 _lotId = nextLotId;
     nextLotId++;
 
-    require(CreatedLots[_batchId].batchSize > CreatedLots[_batchId].existingLots + _lotSize);
+    require(CreatedLots[_batchId].batchSize > CreatedLots[_batchId].existingLots + _lotSize, "Lot size exceeds batch size");
     CreatedLots[_batchId].existingLots += _lotSize;
 
     // Create record of lot
@@ -56,7 +56,7 @@ contract LotInformation is ERC721 {
   }
 
   // Function get batch size
-  function getLotSize(uint256 _lotId) external returns(uint256) {
+  function getLotSize(uint256 _lotId) external view returns(uint256) {
     require(ProductLots[_lotId].lotSize != 0, "Product does not exist");
 
     return (ProductLots[_lotId].lotSize);

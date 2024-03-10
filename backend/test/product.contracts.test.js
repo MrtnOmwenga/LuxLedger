@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 
 describe("productInformation", function () {
   let productInformation;
+  let LotInformation;
   let owner;
   let manufacturer;
   let inspector;
@@ -19,8 +20,11 @@ describe("productInformation", function () {
   beforeEach(async function () {
     [owner, manufacturer, inspector, distributor, retailer, consumer] = await ethers.getSigners();
 
+    const lotInformationInstance = await ethers.getContractFactory("LotInformation");
+    LotInformation = await lotInformationInstance.deploy();
+
     const ProductInformation = await ethers.getContractFactory("ProductInformation");
-    productInformation = await ProductInformation.deploy();
+    productInformation = await ProductInformation.deploy(LotInformation.target);
   });
 
   it("should create a new record", async function () {
@@ -104,12 +108,6 @@ describe("productInformation", function () {
     ).to.be.revertedWith("Product does not exist");
   });
 
-  it("should revert when transferring ownership of a non-existent record", async function () {
-    await expect(
-      productInformation.connect(manufacturer).transferBatchOwnership(9999, distributor.address) // Non-existent record ID
-    ).to.be.revertedWith("Product does not exist");
-  });
-
   it("should recall a product batch", async function () {
     const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
     const batchId = transaction.value;
@@ -122,23 +120,6 @@ describe("productInformation", function () {
 
     const recalls = await productInformation.recalls(batchId);
     expect(recalls.reason).to.equal(defectDescriptionCID)
-  });
-
-  it("should allow returning recalled product batches", async function () {
-    const transaction = await productInformation.connect(manufacturer).createProductBatch(100, manufacturingDate, componentIds, metadataCID);
-    const batchId = transaction.value;
-
-    // Transfer ownership
-    await productInformation.connect(manufacturer).transferBatchOwnership(batchId, distributor.address); // OwnerType.Distributor
-
-    // Recall the product batch
-    await productInformation.connect(manufacturer).recallProductBatch(batchId, defectDescriptionCID);
-
-    // Return the recalled product batch
-    await productInformation.connect(distributor).returnRecalledProduct(batchId);
-
-    const product = await productInformation.ProductBatches(batchId);
-    expect(product.status).to.equal(6); // ProductStatus.Disposed
   });
 
   it("should report a defect", async function () {

@@ -20,7 +20,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   address lotInformationContract;
 
   // Enum to represent Product status
-  enum ProductStatus { InProduction, UnderInspection, InTransit, InDistribution, Sold, Recalled, Disposed }
+  enum ProductStatus { InProduction, UnderInspection, InTransit, InDistribution, Sold, Recalled, Returned, Disposed }
 
   // Enum to represent inspection status
   enum InspectionStatus {Pending, Approved, Rejected}
@@ -105,7 +105,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   }
 
   // Function get batch size
-  function getBatchSize(uint256 _batchId) external returns(uint256) {
+  function getBatchSize(uint256 _batchId) external view returns(uint256) {
     require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
 
     return (ProductBatches[_batchId].batchSize);
@@ -176,17 +176,5 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
     recallProduct(_batchId, _reasonCID);
     
     emit ProductRecalled(_batchId, _reasonCID, msg.sender);
-  }
-
-  // Function to allow product owners to send back recalled products
-  function returnRecalledProduct(uint256 _batchId) public {
-    require(ProductBatches[_batchId].status == ProductStatus.Recalled, "Product is not recalled");
-    require(ownerOf(_batchId) == msg.sender, "You are not the owner of this product");
-
-    // Update product status
-    ProductBatches[_batchId].status = ProductStatus.Disposed;
-
-    // Transfer ownership back to the manufacturer
-    _transfer(msg.sender, ProductBatches[_batchId].manufacturer, _batchId);
   }
 }
