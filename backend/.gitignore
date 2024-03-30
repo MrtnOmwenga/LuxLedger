@@ -1,9 +1,11 @@
-node_modules
-.env
+API/node_modules
+API/.env
+
+SmartContracts/node_modules
 
 # Hardhat files
-/cache
-/artifacts
+SmartContracts/cache
+SmartContracts/artifacts
 
 # TypeChain files
 /typechain

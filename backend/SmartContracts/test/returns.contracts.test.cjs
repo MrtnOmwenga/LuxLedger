@@ -31,13 +31,12 @@ describe("Test returns", function (accounts) {
     const lotSize = 50;
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
-    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, lotSize);
 
     // Approve transaction
     await LotInformation.connect(seller).approve(Escrow.target, 0);
-
     await ProductInformation.connect(seller).approve(Escrow.target, 1);
 
     await Escrow.connect(seller).createLotListing(0, 0, pricePerUnit);

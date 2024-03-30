@@ -37,7 +37,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   struct Product {
     uint256 batchSize;
     string manufacturingDate;
-    string[] componentIds;
+    uint256[] componentIds;
     uint256[] lots;
     address manufacturer;
     Inspection[] inspections;
@@ -61,9 +61,6 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   // Event emitted when an inspection is updated
   event InspectionUpdated(uint256 indexed ProductId, uint256 indexed inspectionIndex, address indexed inspector, InspectionStatus status);
 
-  // Event emitted when an ownership is changed
-  event BatchOwnershipChanged(uint256 indexed ProductId, address indexed prev_owner, address curr_owner);
-
   // Event emitted when a product batch is recalled
   event ProductRecalled(uint256 indexed batchId, string reason, address initiator);
 
@@ -76,7 +73,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   function createProductBatch(
     uint256 _batchSize,
     string memory _manufacturingDate,
-    string[] memory _componentIds,
+    uint256[] memory _componentIds,
     string memory _metadataCID
   ) public returns (uint256) {
     uint256 _batchId = nextBatchId;
@@ -111,14 +108,30 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
     return (ProductBatches[_batchId].batchSize);
   }
 
+  // Function to get the component IDs of a Product
+  function getComponents(uint256 _batchId) public view returns (uint256, uint256[] memory) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
+    Product storage product = ProductBatches[_batchId];
+    return (product.componentIds.length, product.componentIds);
+  }
+
   // Function to create a lot and establish ownership.
   function createLot(uint256 _batchId, uint256 _lotSize) external onlyBatchOwner(_batchId) returns(uint256) {
     require(_lotSize > 0, "Lot size cannot be less than 1");
 
     uint256 _lotId = ILotInformation(lotInformationContract).createLot(_batchId, _lotSize, msg.sender);
+    ProductBatches[_batchId].lots.push(_lotId);
   
-    emit ProductCreated(_batchId, msg.sender);
     return _lotId;
+  }
+
+  // Function to get the lots of a Product
+  function getLots(uint256 _batchId) public view returns (uint256, uint256[] memory) {
+    require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
+
+    Product storage product = ProductBatches[_batchId];
+    return (product.lots.length, product.lots);
   }
 
   // Function to update the status of a Product batch
@@ -129,14 +142,14 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   }
 
   // Function to set inspection status of a Product to pending
-  function addInspector(uint256 _batchId, address _inspector, string memory _inspectionDate, string memory _metadataCID) public onlyBatchOwner(_batchId) {
+  function addInspector(uint256 _batchId, address _inspector, string memory _inspectionDate) public onlyBatchOwner(_batchId) {
     require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
 
     Product storage product = ProductBatches[_batchId];
     uint256 _inspectionIndex = product.inspections.length;
 
     if (_inspector != address(0)) {
-      product.inspections.push(Inspection(_inspector, InspectionStatus.Pending, _inspectionDate, _metadataCID));
+      product.inspections.push(Inspection(_inspector, InspectionStatus.Pending, _inspectionDate, ""));
       emit InspectionUpdated(_batchId, _inspectionIndex, _inspector, InspectionStatus.Pending);
     }
   }
@@ -150,7 +163,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
   }
 
   // Function to update the inspection status of a Product
-  function updateInspection(uint256 _batchId, InspectionStatus _status, string memory _inspectionDate) public {
+  function updateInspection(uint256 _batchId, InspectionStatus _status, string memory _inspectionDate, string memory _authenticationCID) public {
     require(ProductBatches[_batchId].manufacturer != address(0), "Product does not exist");
 
     Product storage product = ProductBatches[_batchId];
@@ -165,6 +178,7 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
     require(product.inspections[_inspectionIndex].inspector == msg.sender, "Only the assigned inspector can update inspection status");
     product.inspections[_inspectionIndex].status = _status;
     product.inspections[_inspectionIndex].inspectionDate = _inspectionDate;
+    product.inspections[_inspectionIndex].authenticationCID = _authenticationCID;
     emit InspectionUpdated(_batchId, _inspectionIndex, msg.sender, _status);
   }
 
@@ -175,6 +189,6 @@ contract ProductInformation is ERC721, RecallManagement, QualityControl {
     ProductBatches[_batchId].status = ProductStatus.Recalled;
     recallProduct(_batchId, _reasonCID);
     
-    emit ProductRecalled(_batchId, _reasonCID, msg.sender);
+    emit ProductRecalled(_batchId, msg.sender, _reasonCID);
   }
 }

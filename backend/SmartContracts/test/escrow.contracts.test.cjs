@@ -31,7 +31,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should allow manufacturer create a lot listing", async () => {
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, 50);
 
     // Check that both the batch and lot are owned by the seller
@@ -57,7 +57,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should allow manufacturer create a batch listing", async () => {
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
 
     // Check that both the batch and lot are owned by the seller
     expect(await ProductInformation.ownerOf(0)).to.equal(seller.address);
@@ -80,7 +80,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should not allow non owners create a lot listing", async () => {
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, 50);
 
     // Check that both the batch and lot are owned by the seller
@@ -98,7 +98,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should not allow non owners to create a batch listing", async () => {
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
 
     // Check that both the batch and lot are owned by the seller
     expect(await ProductInformation.ownerOf(0)).to.equal(seller.address);
@@ -114,7 +114,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should not allow lot listing creation with zero price per unit", async () => {
     const pricePerUnit = 0;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, 50);
 
     // Approve transaction
@@ -128,7 +128,7 @@ describe("Test listing and purchase", (accounts) => {
   it("should not allow batch listing creation with zero price per unit", async () => {
     const pricePerUnit = 0;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
 
     // Approve transaction
     await ProductInformation.connect(seller).approve(Escrow.target, 0);
@@ -143,7 +143,7 @@ describe("Test listing and purchase", (accounts) => {
     const lotSize = 50;
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, lotSize);
 
     // Check that both the batch and lot are owned by the seller
@@ -173,7 +173,7 @@ describe("Test listing and purchase", (accounts) => {
     const batchSize = 100;
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(batchSize, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     expect(await ProductInformation.ownerOf(0)).to.equal(seller.address);
   
     // Approve transaction
@@ -205,7 +205,7 @@ describe("Test listing and purchase", (accounts) => {
     const quantity = 5;
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, 50);
 
     // Approve transaction
@@ -224,7 +224,7 @@ describe("Test listing and purchase", (accounts) => {
     const quantity = 5;
     const pricePerUnit = 1;
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
 
     // Approve transaction
     await ProductInformation.connect(seller).approve(Escrow.target, 0);
@@ -243,7 +243,7 @@ describe("Test listing and purchase", (accounts) => {
     const pricePerUnit = web3.utils.toWei("5", "ether");
     const insufficientPayment = web3.utils.toWei("2", "ether");
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
     await ProductInformation.connect(seller).createLot(0, 50);
 
     // Approve transaction
@@ -261,7 +261,7 @@ describe("Test listing and purchase", (accounts) => {
     const pricePerUnit = web3.utils.toWei("5", "ether");
     const insufficientPayment = web3.utils.toWei("2", "ether");
 
-    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", ["component1", "component2"], "ipfs://Qm...");
+    await ProductInformation.connect(seller).createProductBatch(100, "2022-03-01", [0, 1, 2], "ipfs://Qm...");
 
     // Approve transaction
     await ProductInformation.connect(seller).approve(Escrow.target, 0);

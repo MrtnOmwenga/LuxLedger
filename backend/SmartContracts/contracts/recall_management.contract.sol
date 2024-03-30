@@ -13,12 +13,11 @@ contract RecallManagement {
   mapping(uint256 => Recall) public recalls;
   uint256 private nextRecallId;
 
-  event ProductRecalled(uint256 recallId, uint256 batchId, address manufacturer, string reason);
+  event ProductRecalled(uint256 batchId, address manufacturer, string reason);
 
   function recallProduct(uint256 _batchId, string memory _reason) public {
     uint256 recallId = nextRecallId++;
     recalls[recallId] = Recall(recallId, _batchId, msg.sender, _reason, false);
-    emit ProductRecalled(recallId, _batchId, msg.sender, _reason);
   }
 
   function resolveRecall(uint256 _recallId) public {

@@ -28,9 +28,6 @@ contract LotInformation is ERC721 {
   // Event emitted when a new lot is created
   event LotCreated(uint256 indexed lotId, uint256 indexed batchId);
 
-  // Event emitted when an ownership is changed
-  event LotOwnershipChanged(uint256 indexed ProductId, address indexed prev_owner, address curr_owner);
-
   constructor() ERC721("LotInformationContract", "LIC") {}
 
   // Register new batch
@@ -43,7 +40,7 @@ contract LotInformation is ERC721 {
     uint256 _lotId = nextLotId;
     nextLotId++;
 
-    require(CreatedLots[_batchId].batchSize > CreatedLots[_batchId].existingLots + _lotSize, "Lot size exceeds batch size");
+    require(CreatedLots[_batchId].batchSize >= CreatedLots[_batchId].existingLots + _lotSize, "Lot size exceeds batch size");
     CreatedLots[_batchId].existingLots += _lotSize;
 
     // Create record of lot

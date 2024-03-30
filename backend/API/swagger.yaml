@@ -1,0 +1,575 @@
+swagger: '3.0.0'
+info:
+  title: SmartSupply API
+  description: REST API for managing product tracking using blockchain technology
+  version: '1.0.0'
+basePath: /api
+schemes:
+  - http
+  - https
+tags:
+  - name: Product Information
+    description: Operations related to product information
+  - name: Escrow
+    description: Operations related to escrow transactions
+paths:
+  /product-information/{id}:
+    get:
+      summary: Get product information by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: The ID of the product batch
+          type: string
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              batchSize:
+                type: integer
+              manufacturingDate:
+                type: string
+                format: date
+              componentIds:
+                type: array
+                items:
+                  type: integer
+              lots:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    lotId:
+                      type: integer
+                    lotSize:
+                      type: integer
+              manufacturer:
+                type: string
+              inspections:
+                type: array
+                items:
+                  type: object
+              status:
+                type: string
+              metadataCID:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+  /product-information/create-product-batch:
+    post:
+      summary: Create a new product batch
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch Size, Manufacturing Date, ComponentIds and metadata to create product batch
+          required: true
+          schema:
+            type: object
+            properties:
+              batchSize:
+                type: integer
+              manufacturingDate:
+                type: string
+                format: date
+              componentIds:
+                type: array
+                items:
+                  type: integer
+              metadata:
+                type: object
+            required:
+              - batchSize
+              - manufacturingDate
+              - componentIds
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/create-lot:
+    post:
+      summary: Create a new lot
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and Lot Size to create lot
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              lotSize:
+                type: integer
+            required:
+              - batchId
+              - lotSize
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/update-batch-status:
+    post:
+      summary: Update batch status
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and status to create update batch status
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              status:
+                type: string
+            required:
+              - batchId
+              - status
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/add-inspector:
+    post:
+      summary: Add inspector to batch
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and inspector address to add an inspector
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              inspector:
+                type: string
+            required:
+              - batchId
+              - inspector
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/update-inspection:
+    post:
+      summary: Update inspection status
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID, status, Inspection Date and Authentication to create update inspection data
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              status:
+                type: string
+              inspectionDate:
+                type: string
+                format: date
+              authentication:
+                type: object
+            required:
+              - batchId
+              - status
+              - inspectionDate
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/recall-product:
+    post:
+      summary: Recall product batch
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and reason for the recall
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              reason:
+                type: string
+            required:
+              - batchId
+              - reason
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/report-defect:
+    post:
+      summary: Report defect in batch
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and description of the defect
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              description:
+                type: string
+            required:
+              - batchId
+              - description
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /product-information/resolve-recall:
+    post:
+      summary: Resolve recall of product batch
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Recall ID of the recall
+          required: true
+          schema:
+            type: object
+            properties:
+              recallId:
+                type: integer
+            required:
+              - recallId
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+        '500':
+          description: Internal Server Error
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+  /escrow/create-lot-listing:
+    post:
+      tags:
+        - Escrow
+      summary: Create a new lot listing
+      description: Creates a new listing for a lot in the escrow system
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID, Lot ID, and Price Per Unit for the lot listing
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              lotId:
+                type: integer
+              pricePerUnit:
+                type: number
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        400:
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+      produces:
+        - application/json
+  /escrow/create-batch-listing:
+    post:
+      tags:
+        - Escrow
+      summary: Create a new batch listing
+      description: Creates a new listing for a batch in the escrow system
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Batch ID and Price Per Unit for the batch listing
+          required: true
+          schema:
+            type: object
+            properties:
+              batchId:
+                type: integer
+              pricePerUnit:
+                type: number
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        400:
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+      produces:
+        - application/json
+  /escrow/purchase-lot:
+    post:
+      tags:
+        - Escrow
+      summary: Purchase a lot
+      description: Purchases a lot from the escrow system
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Listing ID and amount for the lot purchase
+          required: true
+          schema:
+            type: object
+            properties:
+              listingId:
+                type: integer
+              amount:
+                type: number
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        400:
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+      produces:
+        - application/json
+  /escrow/purchase-batch:
+    post:
+      tags:
+        - Escrow
+      summary: Purchase a batch
+      description: Purchases a batch from the escrow system
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: body
+          name: body
+          description: Listing ID and amount for the batch purchase
+          required: true
+          schema:
+            type: object
+            properties:
+              listingId:
+                type: integer
+              amount:
+                type: number
+      responses:
+        200:
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        400:
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+      produces:
+        - application/json
+securityDefinitions:
+  cookieAuth:
+    type: apiKey
+    in: header
+    name: connect.sid

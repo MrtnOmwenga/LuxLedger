@@ -1,29 +1,35 @@
 {
-  "name": "luxledger",
+  "name": "smartsupplycontracts",
   "version": "1.0.0",
   "description": "Supply management software powered by blockchain technology",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "deploy": "npx hardhat run scripts/deploy.js --network localhost"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrtnOmwenga/LuxLedger.git"
+    "url": "git+https://github.com/MrtnOmwenga/SmartSupply.git"
   },
   "author": "Martin Omwenga",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/MrtnOmwenga/LuxLedger/issues"
+    "url": "https://github.com/MrtnOmwenga/SmartSupply/issues"
   },
-  "homepage": "https://github.com/MrtnOmwenga/LuxLedger#readme",
+  "homepage": "https://github.com/MrtnOmwenga/SmartSupply#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "hardhat": "^2.21.0",
     "nodemon": "^3.1.0"
   },
   "dependencies": {
+    "@helia/json": "^3.0.2",
     "@openzeppelin/contracts": "^5.0.2",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.11.1",
+    "helia": "^4.1.0",
     "web3": "^4.5.0"
   }
 }

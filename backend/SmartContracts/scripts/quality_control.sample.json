@@ -1,0 +1,30 @@
+{
+  "defects": [
+    {
+      "inspectionDate": "2024-03-15",
+      "inspector": "Quality Assurance Inc",
+      "defectDetails": [
+        {"defectType": "MissingComponent", "quantity": 2},
+        {"defectType": "ScratchedSurface", "quantity": 1}
+      ],
+      "repairDetails": "Replaced missing components and polished scratched surfaces.",
+      "inspectionReportCID": "QmZu9h4muyVH2HgCycpCudjVjJCVkDDsFd1vQtRHUVhDW8",
+      "imageCIDs": [
+        "QmZu9h4muyVH2HgCycpCudjVjJCVkDDsFd1vQtRHUVhDW8"
+      ]
+    },
+    {
+      "inspectionDate": "2024-03-10",
+      "inspector": "Quality Assurance Inc",
+      "defectDetails": [
+        {"defectType": "MissingComponent", "quantity": 2},
+        {"defectType": "ScratchedSurface", "quantity": 1}
+      ],
+      "repairDetails": "Replaced missing components and polished scratched surfaces.",
+      "inspectionReportCID": "QmZu9h4muyVH2HgCycpCudjVjJCVkDDsFd1vQtRHUVhDW8",
+      "imageCIDs": [
+        "QmZu9h4muyVH2HgCycpCudjVjJCVkDDsFd1vQtRHUVhDW8"
+      ]
+    }  
+  ]
+}

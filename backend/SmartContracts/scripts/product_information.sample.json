@@ -1,0 +1,36 @@
+{
+  "batches": [
+    {
+      "manufacturer": "Company A",
+      "location": "Factory A",
+      "imageCID": "QmX5RuYLZTg9M8LXtr8U5iRCmCvjm7xDyv1e8SeC7UH21N",
+      "logistics": [
+        {
+          "shippingDate": "2024-03-14",
+          "shippingFrom": "Factory A",
+          "shippingTo": "Warehouse B",
+          "carrier": "Carrier Corp",
+          "trackingNumber": "1234567890",
+          "deliveryConfirmed": true,
+          "deliveryConfirmationCID": "QmWALzN6vQZ1Emz7pUjKGx95hVXbGJw3iAFr6n1QDm1GwJ"
+      }
+      ]
+    },
+    {
+      "manufacturer": "Company B",
+      "location": "Factory B",
+      "imageCID": "QmX5RuYLZTg9M8LXtr8U5iRCmCvjm7xDyv1e8SeC7UH21N",
+      "logistics": [
+        {
+          "shippingDate": "2024-03-14",
+          "shippingFrom": "Factory A",
+          "shippingTo": "Warehouse B",
+          "carrier": "Carrier Corp",
+          "trackingNumber": "1234567890",
+          "deliveryConfirmed": true,
+          "deliveryConfirmationCID": "QmWALzN6vQZ1Emz7pUjKGx95hVXbGJw3iAFr6n1QDm1GwJ"
+        }
+      ]
+    }
+  ]
+}
