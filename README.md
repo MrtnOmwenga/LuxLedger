@@ -65,7 +65,7 @@ By providing standardized endpoints and comprehensive documentation, SmartSupply
 
 1. Clone the repository:
 
-git clone <repository-url>
+git clone https://github.com/MrtnOmwenga/SmartSupply.git
 
 2. Install dependencies:
 
@@ -75,10 +75,13 @@ npm install
 
 Create a .env file in the root directory and add the following environment variables:
 
+PROVIDER_URL=<Your provider URL>
+PRIVATE_KEY=<Your Private Key>
 PORT=3000
-SECRET=<your-secret-key>
-PROVIDER_URL=<ethereum-provider-url>
-MONGO_URI=<mongodb-connection-string>
+SECRET=<Your secret key>
+LOT_INFORMATION=<Your lot information contract address>
+PRODUCT_INFORMATION=<Your product information contract address>
+ESCROW=<Your escrow contract address>
 
 4. Start the server:
 
@@ -136,11 +139,6 @@ Set up NGINX as a reverse proxy server to forward requests to the Express applic
 4. Deploy on AWS:
 
 Deploy the application on AWS using services like EC2 for hosting the Docker containers, RDS for MongoDB, and Elastic Load Balancer (ELB) for load balancing.
-
-## Contributors
-
-- John Doe
-- Jane Smith
 
 ## License
 
