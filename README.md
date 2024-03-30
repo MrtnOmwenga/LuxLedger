@@ -101,19 +101,6 @@ Include the CSRF token in the headers of subsequent requests as x-csrf-token.
 
 Access the API endpoints for managing product information and escrow services.
 
-## API Endpoints
-
-- Product Information:
-  - POST /api/product-information/create-product-batch: Create a product batch.
-  - POST /api/product-information/create-lot: Create a lot.
-  - POST /api/product-information/update-batch-status: Update batch status.
-  - POST /api/product-information/update-inspection: Update inspection.
-
-- Escrow:
-  - POST /api/escrow/create-lot-listing: Create a lot listing.
-  - POST /api/escrow/create-batch-listing: Create a batch listing.
-  - POST /api/escrow/purchase-lot: Purchase a lot.
-
 ## Deployment
 
 ### Local Development
