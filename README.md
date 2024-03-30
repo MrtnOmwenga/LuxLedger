@@ -75,13 +75,13 @@ npm install
 
 Create a .env file in the root directory and add the following environment variables:
 
-PROVIDER_URL=<Your provider URL>
-PRIVATE_KEY=<Your Private Key>
-PORT=3000
-SECRET=<Your secret key>
-LOT_INFORMATION=<Your lot information contract address>
-PRODUCT_INFORMATION=<Your product information contract address>
-ESCROW=<Your escrow contract address>
+- PROVIDER_URL=<Your provider URL>
+- PRIVATE_KEY=<Your Private Key>
+- PORT=3000
+- SECRET=<Your secret key>
+- LOT_INFORMATION=<Your lot information contract address>
+- PRODUCT_INFORMATION=<Your product information contract address>
+- ESCROW=<Your escrow contract address>
 
 4. Start the server:
 
