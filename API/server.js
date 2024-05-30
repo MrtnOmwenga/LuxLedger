@@ -8,7 +8,9 @@ import helmet from 'helmet';
 import session from 'express-session';
 import ProductInformation from './controllers/product_information.controller.js';
 import Escrow from './controllers/escrow.controller.js';
-import { limiter, requestLogger, TokenExtractor } from './utils/middleware.utils.js';
+import UserProfiles from './controllers/user.controller.js';
+import CeramicController from './controllers/ceramic.controller.js';
+import { limiter, requestLogger, TokenExtractor, auth } from './utils/middleware.utils.js';
 import swaggerUi from 'swagger-ui-express';
 import config from './utils/config.utils.js';
 
@@ -56,6 +58,11 @@ app.get('/services/csrf', function (req, res) {
 app.use(requestLogger);
 app.use(TokenExtractor);
 
+app.use('/credentials', UserProfiles);
+
+app.use(auth);
+
+app.use('/ceramic', CeramicController);
 app.use('/api/product-information', ProductInformation);
 app.use('/api/escrow', Escrow);
 

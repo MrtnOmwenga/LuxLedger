@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import web3 from 'web3';
 import csrf from 'csurf';
 import { AddressExtractor } from '../utils/middleware.utils.js';
-import { validateLotListing, validateBatchListing, validatePurchase } from '../services/escrow.validator.js';
+import { validateLotListing, validateBatchListing, validatePurchase } from '../validators/escrow.validator.js';
 import 'express-async-errors';
 
 const tokens = (n) => {

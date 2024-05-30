@@ -67,3 +67,28 @@ export const AddressExtractor = (request, response, next) => {
     next(); // Proceed to the next middleware
   }
 };
+
+export const auth = async (req, res, next) => {
+  try {
+    const verifiableCredential = req.headers['credential'];
+
+    if (!verifiableCredential) {
+      return res.status(401).json({ error: 'Verifiable credential missing in headers' });
+    }
+
+    const isValidCredential = await verifyCredential(verifiableCredential);
+
+    if (!isValidCredential) {
+      return res.status(401).json({ error: 'Invalid verifiable credential' });
+    }
+
+    const { walletAddress } = verifiableCredential.credentialSubject;
+
+    req.userIdentity = { walletAddress };
+
+    next();
+  } catch (error) {
+    console.error('Error verifying user identity:', error);
+    res.status(500).json({ error: 'Failed to verify user identity' });
+  }
+};

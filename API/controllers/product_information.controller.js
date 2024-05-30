@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import csrf from 'csurf';
-import toIPFS from '../services/ipfs.service.js';
 import { AddressExtractor } from '../utils/middleware.utils.js';
-import { validateCreateProductBatch, validateCreateLot, validateUpdateBatchStatus, validateAddInspector, validateUpdateInspection, validateRecallProduct,  validateReportDefect, validateResolveRecall } from '../services/product_information.validator.js';
+import { validateCreateProductBatch, validateCreateLot, validateUpdateBatchStatus, validateAddInspector, validateUpdateInspection, validateRecallProduct,  validateReportDefect, validateResolveRecall } from '../validators/product_information.validator.js';
 import 'express-async-errors';
 
 const ProductInformation = Router();
@@ -49,7 +48,6 @@ ProductInformation.get('/:id', AddressExtractor, async (request, response) => {
 // POST /create-product-batch
 ProductInformation.post('/create-product-batch', csrfProtection, AddressExtractor, validateCreateProductBatch, async (request, response) => {
   const { batchSize, manufacturingDate, componentIds, metadata } = request.body;
-  const metadataCID = toIPFS(metadata);
 
   try {
     // Call the createProductBatch function from the ProductInformation contract
@@ -137,7 +135,6 @@ ProductInformation.post('/add-inspector', csrfProtection, AddressExtractor, vali
 // POST /update-inspection
 ProductInformation.post('/update-inspection', csrfProtection, AddressExtractor, validateUpdateInspection, async (request, response) => {
   const { batchId, status, inspectionDate, authentication } = req.body;
-  const authenticationCID = toIPFS(authentication);
 
   try {
     // Call the updateInspection function from the ProductInformation contract
@@ -160,7 +157,6 @@ ProductInformation.post('/update-inspection', csrfProtection, AddressExtractor, 
 // POST /recall-product
 ProductInformation.post('/recall-product', csrfProtection, AddressExtractor, validateRecallProduct, async (request, response) => {
   const { batchId, reason } = request.body;
-  const reasonCID = toIPFS(reason);
 
   try {
     // Call the recallProductBatch function from the ProductInformation contract
@@ -183,7 +179,6 @@ ProductInformation.post('/recall-product', csrfProtection, AddressExtractor, val
 // POST /report-defect
 ProductInformation.post('/report-defect', csrfProtection, AddressExtractor, validateReportDefect, async (request, response) => {
   const { batchId, description } = request.body;
-  const descriptionCID = toIPFS(description);
 
   try {
     // Call the reportDefect function from the QualityControl contract
